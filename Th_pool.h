@@ -101,28 +101,28 @@ private:
             
 
             for (int i = 0; i < taskQueue.size(); i++) {
-              
-              
-                if (taskQueue.size() != 0) {
-                    if ((*taskQueue[i]).statys() == "in the queue") {
-                        shared_ptr<task> cc = taskQueue[i];
+                shared_ptr<task> cc = taskQueue[i];
+                string rr = this->statys(cc);
+                
+                    if (rr == "in the queue") {
+                        //shared_ptr<task> cc = taskQueue[i];
                         taskMutex.lock();
                         (*cc).performed_f();
                         taskMutex.unlock();
                         (*cc).execute();
-                        taskMutex.lock();
+                        
                         (*cc).completed_f();
 
-                        for (int j = 0; j < taskQueue.size(); j++) {
+                        //for (int j = 0; j < taskQueue.size(); j++) {
 
-                            if (taskQueue[j] == cc) {
-                                taskQueue.erase(taskQueue.begin() + j);
-                            }
-                        }
+                        //    if (taskQueue[j] == cc) {
+                        //        taskQueue.erase(taskQueue.begin() + j);
+                        //    }
+                        //}
 
-                        taskMutex.unlock();
+                      
                     }
-                }
+               
             }
 
             unique_lock<mutex> lock(taskMutex);
@@ -170,13 +170,21 @@ public:
         return taskQueue.back();
     }
     string statys(shared_ptr<task> tas) {
-        taskMutex.lock();
+        
         string rr = (*tas).statys();
-        taskMutex.unlock();
+        
         return rr;
     }
 
+    ~Th_pool() {
+        this_thread::sleep_for(chrono::milliseconds(1000));
+        while (this->statys(taskQueue[taskQueue.size()-1]) != "completed") {
 
+        }
+        Th_id.resize(0);
+        this_thread::sleep_for(chrono::milliseconds(1000));
+
+    }
 };
 
 
