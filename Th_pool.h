@@ -6,7 +6,7 @@
 #include <condition_variable>
 #include <iostream>
 #include <chrono>
-
+#include <time.h>
 using namespace std;
 
 #define MAX_THREADS std::thread::hardware_concurrency() - 1;
@@ -51,21 +51,24 @@ private:
         function<void(int)> func;
         int info;
         string stat;
-      
+        bool trig = 1;
     public:
         ~task(){}
         task(function<void(int)> ff, int inf) {
             func = ff;
             info = inf;
             stat = "in the queue";
+            
         }
         void performed_f() {
+            trig = 0;
             stat = "performed";
-
+            trig = 1;
         }
         void completed_f() {
+             trig = 0;
              stat = "completed";
-
+             trig = 1;
         }
         void execute() {
             
@@ -75,9 +78,10 @@ private:
            
         }
         string statys() {
-
+            while (!trig) {
+                
+            }
             return stat;
-
         }
     };
     int numThreads; 
@@ -88,39 +92,37 @@ private:
     mutex taskMutex; 
     
     void thread_while() {
-        
+        srand(0);
         while (true) {
 
             
 
 
-            if (taskQueue.size() < 1)
-                continue;
+            
 
             for (int i = 0; i < taskQueue.size(); i++) {
               
+              
+                if (taskQueue.size() != 0) {
+                    if ((*taskQueue[i]).statys() == "in the queue") {
+                        shared_ptr<task> cc = taskQueue[i];
+                        taskMutex.lock();
+                        (*cc).performed_f();
+                        taskMutex.unlock();
+                        (*cc).execute();
+                        taskMutex.lock();
+                        (*cc).completed_f();
 
-                if ((*taskQueue[i]).statys() == "in the queue") {
-                    
-                    taskMutex.lock();
-                    (*taskQueue[i]).performed_f();
-                    taskMutex.unlock();
-                    shared_ptr<task> cc = taskQueue[i];
-                    (*taskQueue[i]).execute();
-                                                     
+                        for (int j = 0; j < taskQueue.size(); j++) {
 
-                    taskMutex.lock();
-                    for (int j = 0; j < taskQueue.size(); j++) {
-
-                        if (taskQueue[j] == cc) {
-                            (*taskQueue[j]).completed_f();
-                            taskQueue.erase(taskQueue.begin() + j);
+                            if (taskQueue[j] == cc) {
+                                taskQueue.erase(taskQueue.begin() + j);
+                            }
                         }
-                    }
-                    
-                    taskMutex.unlock();
-                }
 
+                        taskMutex.unlock();
+                    }
+                }
             }
 
             unique_lock<mutex> lock(taskMutex);
