@@ -21,7 +21,7 @@ int main() {
     this_thread::sleep_for(chrono::seconds(2));
     cout << pool.statys(tt) << endl;
     this_thread::sleep_for(chrono::milliseconds(6000));
-    pool.resize(2);
+    pool.resize(77);
     auto ttt = pool.push_task(rrr, 1);
     pool.push_task(rrr, 2);
     pool.push_task(rrr, 3);

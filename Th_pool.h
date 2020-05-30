@@ -14,31 +14,26 @@ using namespace std;
 class Th_pool {
 public:
     void resize(int newCount) {
-
         int tmp = MAX_THREADS;
-        if (newCount > tmp || newCount < 1) {
-            tmp = numThreads;
-            numThreads = MAX_THREADS;
-            Pool.resize(newCount);
-            for (int i = tmp; i != numThreads; ++i) {
-                Pool.emplace_back(thread(&Th_pool::thread_while, this));
-                Pool.back().detach();
-            }
-        }
-        else if (newCount > numThreads) {
-            uint8_t tmp = numThreads;
-            numThreads = newCount;
-            Pool.resize(numThreads);
-            for (int i = tmp; i != numThreads; ++i) {
-                Pool.emplace_back(thread(&Th_pool::thread_while, this));
-                Pool.back().detach();
-            }
-        }
-        else {
-            numThreads = newCount;
-            Pool.resize(newCount);
-        }
+        if (newCount <= 0 || newCount > tmp) {
 
+
+        }
+        else {           
+            if (newCount > numThreads) {
+                uint8_t tmp = numThreads;
+                numThreads = newCount;
+                Pool.resize(numThreads);
+                for (int i = tmp; i != numThreads; ++i) {
+                    Pool.emplace_back(thread(&Th_pool::thread_while, this));
+                    Pool.back().detach();
+                }
+            }
+            else {
+                numThreads = newCount;
+                Pool.resize(newCount);
+            }
+        }
     }
 
 private:
@@ -48,6 +43,7 @@ private:
         function<void(int)> func;
         int info;
         string stat;
+      
     public:
         ~task(){}
         task(function<void(int)> ff, int inf) {
@@ -55,10 +51,20 @@ private:
             info = inf;
             stat = "in the queue";
         }
-        void execute() {
+        void performed_f() {
             stat = "performed";
-            func(info);       
-            stat = "completed";
+
+        }
+        void completed_f() {
+             stat = "completed";
+
+        }
+        void execute() {
+            
+            func(info);     
+           
+           
+           
         }
         string statys() {
 
@@ -80,17 +86,24 @@ private:
 
             if (taskQueue.size() < 1)
                 continue;
-            for (int i = 0; i < taskQueue.size(); i++) {
 
+            for (int i = 0; i < taskQueue.size(); i++) {
+              
 
                 if ((*taskQueue[i]).statys() == "in the queue") {
+                    
+                    taskMutex.lock();
+                    (*taskQueue[i]).performed_f();
+                    taskMutex.unlock();
                     shared_ptr<task> cc = taskQueue[i];
                     (*taskQueue[i]).execute();
-                    
+                                                     
+
                     taskMutex.lock();
                     for (int j = 0; j < taskQueue.size(); j++) {
 
                         if (taskQueue[j] == cc) {
+                            (*taskQueue[j]).completed_f();
                             taskQueue.erase(taskQueue.begin() + j);
                         }
                     }
