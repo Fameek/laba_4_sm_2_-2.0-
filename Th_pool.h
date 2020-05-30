@@ -24,14 +24,22 @@ public:
                 uint8_t tmp = numThreads;
                 numThreads = newCount;
                 Pool.resize(numThreads);
+                Th_id.resize(numThreads);
                 for (int i = tmp; i != numThreads; ++i) {
-                    Pool.emplace_back(thread(&Th_pool::thread_while, this));
+                    
+                    Pool.emplace_back(move(thread(&Th_pool::thread_while, this)));
+                    Th_id.emplace_back(Pool.back().get_id());
                     Pool.back().detach();
                 }
             }
             else {
-                numThreads = newCount;
-                Pool.resize(newCount);
+                
+
+
+                
+               numThreads = newCount;
+               Pool.resize(newCount);
+               Th_id.resize(newCount);
             }
         }
     }
@@ -73,12 +81,14 @@ private:
         }
     };
     int numThreads; 
-    vector<thread> Pool; 
+    vector<thread> Pool;
+    vector<thread::id> Th_id;
     vector<shared_ptr<task>> taskQueue;
     condition_variable thread_c;
     mutex taskMutex; 
     
     void thread_while() {
+        
         while (true) {
 
             
@@ -115,6 +125,20 @@ private:
 
             unique_lock<mutex> lock(taskMutex);
             thread_c.wait(lock, [this] {return !taskQueue.empty(); });
+
+            bool tr = 1;
+            
+            for (int i = 0; i < Th_id.size(); i++) {
+                
+                if (Th_id[i] == this_thread::get_id()) {
+                    tr = 0;
+                    break;
+                }
+
+            }
+            if (tr) {
+                break;
+            }
         }
     }
 public:
@@ -124,9 +148,11 @@ public:
             numThreads = tmp;
         }
         Pool.reserve(numThreads);
+        Th_id.reserve(numThreads);
         for (int i = 0; i != numThreads; ++i) {
 
             Pool.emplace_back(thread(&Th_pool::thread_while, this));
+            Th_id.emplace_back(Pool.back().get_id());
             Pool.back().detach();
         }
 
@@ -142,9 +168,9 @@ public:
         return taskQueue.back();
     }
     string statys(shared_ptr<task> tas) {
-
+        taskMutex.lock();
         string rr = (*tas).statys();
-
+        taskMutex.unlock();
         return rr;
     }
 
